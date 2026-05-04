@@ -26,6 +26,8 @@ def scale_test_batch(image_dir: str) -> dict[int, float]:
     Returns {scale: mean_ssim}.
     """
     images = list(Path(image_dir).glob("*.png"))
+    if not images:
+        raise ValueError(f"No PNG files found in {image_dir}")
     results = {s: [] for s in SCALES}
 
     for img_path in images:

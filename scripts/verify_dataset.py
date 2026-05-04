@@ -5,6 +5,7 @@ import json
 import random
 import numpy as np
 from pathlib import Path
+from tqdm import tqdm
 
 
 def _load_clip():
@@ -41,7 +42,7 @@ def compute_clip_scores(jsonl_path: str, sample_size: int = 200,
     return [
         _clip_score_single(model, preprocess, tokenizer, device,
                            item["png_path"], item["caption"])
-        for item in sample
+        for item in tqdm(sample, desc="CLIP scoring")
     ]
 
 
@@ -54,7 +55,7 @@ def filter_by_clip_score(jsonl_path: str, output_path: str,
     model, preprocess, tokenizer, device = _load_clip()
     kept, removed = [], 0
 
-    for item in pairs:
+    for item in tqdm(pairs, desc="CLIP filtering"):
         score = _clip_score_single(model, preprocess, tokenizer, device,
                                    item["png_path"], item["caption"])
         if score >= threshold:

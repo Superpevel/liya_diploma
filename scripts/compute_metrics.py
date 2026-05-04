@@ -14,12 +14,13 @@ def compute_clip_score(image_paths: list[str], captions: list[str]) -> float:
         "ViT-B-32", pretrained="openai"
     )
     tokenizer = open_clip.get_tokenizer("ViT-B-32")
-    model.eval().to("cuda")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.eval().to(device)
 
     scores = []
     for img_path, caption in zip(image_paths, captions):
-        image = preprocess(Image.open(img_path).convert("RGB")).unsqueeze(0).to("cuda")
-        text = tokenizer([caption]).to("cuda")
+        image = preprocess(Image.open(img_path).convert("RGB")).unsqueeze(0).to(device)
+        text = tokenizer([caption]).to(device)
         with torch.no_grad():
             img_feat = model.encode_image(image)
             txt_feat = model.encode_text(text)
@@ -43,11 +44,12 @@ def compute_fid(real_dir: str, fake_dir: str) -> float:
 
 def compute_lpips(real_paths: list[str], fake_paths: list[str]) -> float:
     """Mean LPIPS (AlexNet) for paired real/fake images."""
-    loss_fn = lpips_lib.LPIPS(net="alex").to("cuda")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    loss_fn = lpips_lib.LPIPS(net="alex").to(device)
     scores = []
     for r, f in zip(real_paths, fake_paths):
-        img_r = lpips_lib.im2tensor(lpips_lib.load_image(r)).to("cuda")
-        img_f = lpips_lib.im2tensor(lpips_lib.load_image(f)).to("cuda")
+        img_r = lpips_lib.im2tensor(lpips_lib.load_image(r)).to(device)
+        img_f = lpips_lib.im2tensor(lpips_lib.load_image(f)).to(device)
         with torch.no_grad():
             scores.append(loss_fn(img_r, img_f).item())
     return float(np.mean(scores))

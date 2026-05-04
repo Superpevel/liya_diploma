@@ -23,13 +23,14 @@ def load_model():
         torch_dtype=torch.float16,
         device_map="auto",
     )
-    return processor, model
+    device = next(model.parameters()).device
+    return processor, model, device
 
 
-def caption_image(processor, model, image_path: str) -> str:
+def caption_image(processor, model, device, image_path: str) -> str:
     """Generate a caption for a single logo image."""
     image = Image.open(image_path).convert("RGB")
-    inputs = processor(CAPTION_PROMPT, image, return_tensors="pt").to("cuda")
+    inputs = processor(CAPTION_PROMPT, image, return_tensors="pt").to(device)
     with torch.no_grad():
         output = model.generate(**inputs, max_new_tokens=100, do_sample=False)
     full = processor.decode(output[0], skip_special_tokens=True)
@@ -45,8 +46,11 @@ def caption_batch(input_jsonl: str, output_jsonl: str) -> None:
     if Path(output_jsonl).exists():
         with open(output_jsonl) as f:
             for line in f:
-                item = json.loads(line)
-                done.add(item["png_path"])
+                try:
+                    item = json.loads(line)
+                    done.add(item["png_path"])
+                except json.JSONDecodeError:
+                    continue
 
     with open(input_jsonl) as f:
         pairs = [json.loads(l) for l in f]
@@ -54,10 +58,14 @@ def caption_batch(input_jsonl: str, output_jsonl: str) -> None:
     remaining = [p for p in pairs if p["png_path"] not in done]
     print(f"Captioning {len(remaining)} images ({len(done)} already done)")
 
-    processor, model = load_model()
+    if not remaining:
+        print("Nothing to do — all images already captioned.")
+        return
+
+    processor, model, device = load_model()
 
     with open(output_jsonl, "a") as out:
         for item in tqdm(remaining):
-            caption = caption_image(processor, model, item["png_path"])
+            caption = caption_image(processor, model, device, item["png_path"])
             item["caption"] = caption
             out.write(json.dumps(item) + "\n")
