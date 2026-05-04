@@ -8,9 +8,9 @@ def count_svg_paths(svg_path: str) -> int:
     try:
         tree = ET.parse(svg_path)
         root = tree.getroot()
-        namespaced = root.findall(".//{http://www.w3.org/2000/svg}path")
-        bare = [e for e in root.iter() if e.tag == "path"]
-        return len(namespaced) + len(bare)
+        paths = {e for e in root.iter()
+                 if e.tag in ("path", "{http://www.w3.org/2000/svg}path")}
+        return len(paths)
     except Exception:
         return -1
 

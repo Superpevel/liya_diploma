@@ -50,10 +50,11 @@ config:
         prompts:
           - "LOGOIMG minimalist coffee shop logo, circular, dark green, flat design"
           - "LOGOIMG tech startup logo, geometric hexagon, blue gradient, sans-serif"
+        neg: ""
         seed: 42
         walk_seed: true
         guidance_scale: 3.5
         sample_steps: 20
 meta:
-  name: "[name]"
+  name: "flux_logo_lora_r16"
   version: "1.0"

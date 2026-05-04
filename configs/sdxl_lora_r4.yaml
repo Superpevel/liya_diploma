@@ -56,5 +56,5 @@ config:
         guidance_scale: 7.5
         sample_steps: 20
 meta:
-  name: "[name]"
+  name: "sdxl_logo_lora_r4"
   version: "1.0"
