@@ -5,3 +5,9 @@ __pycache__/
 .ipynb_checkpoints/
 *.egg-info/
 .env
+*.pt
+*.bin
+*.pth
+*.log
+wandb/
+.vscode/
