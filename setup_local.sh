@@ -9,10 +9,16 @@ echo "=== Logo Generation ML — Local Setup ==="
 echo "Project: $SCRIPT_DIR"
 echo "Python:  $($PYTHON --version)"
 
-# 1. Install PyTorch for CUDA 12.8 (RTX 5080 / Blackwell)
+# 1. Install PyTorch (CUDA 12.8 on Linux, CPU/MPS on macOS)
 echo ""
-echo "Step 1: Installing PyTorch 2.6+ with CUDA 12.8..."
-$PYTHON -m pip install "torch>=2.6.0" torchvision --index-url https://download.pytorch.org/whl/cu128
+echo "Step 1: Installing PyTorch 2.6+..."
+if [[ "$(uname)" == "Darwin" ]]; then
+    echo "macOS detected — installing CPU/MPS build"
+    $PYTHON -m pip install "torch>=2.6.0" torchvision
+else
+    echo "Linux detected — installing CUDA 12.8 build (RTX 5080 / Blackwell)"
+    $PYTHON -m pip install "torch>=2.6.0" torchvision --index-url https://download.pytorch.org/whl/cu128
+fi
 
 # 2. Install project dependencies
 echo ""
