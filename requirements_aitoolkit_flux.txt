@@ -40,7 +40,8 @@ einops
 kornia
 opencv-python
 Pillow
-invisible-watermark
+# invisible-watermark — skipped: pulls PyWavelets which fails to build from
+# source on Colab Python 3.12. Watermarking is not used by the training path.
 
 # Optimizers / models
 bitsandbytes
