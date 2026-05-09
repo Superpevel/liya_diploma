@@ -3,7 +3,7 @@ config:
   name: flux_logo_lora_r16
   process:
     - type: sd_trainer
-      training_folder: "/content/drive/MyDrive/liya_diplomCC/results/experiments/flux_r16"
+      training_folder: "/content/drive/MyDrive/liya_diploma/results/experiments/flux_r16"
       device: cuda:0
       trigger_word: "LOGOIMG"
       network:
@@ -15,7 +15,7 @@ config:
         save_every: 500
         max_step_saves_to_keep: 4
       datasets:
-        - folder_path: "/content/drive/MyDrive/liya_diplomCC/data/train_images"
+        - folder_path: "/content/drive/MyDrive/liya_diploma/data/train_images"
           caption_ext: txt
           caption_dropout_rate: 0.05
           shuffle_tokens: false

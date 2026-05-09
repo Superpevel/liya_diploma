@@ -3,7 +3,7 @@ from pathlib import Path
 try:
     import google.colab  # noqa: F401
     IN_COLAB = True
-    PROJECT_ROOT = '/content/drive/MyDrive/liya_diplomCC'
+    PROJECT_ROOT = '/content/drive/MyDrive/liya_diploma'
     AI_TOOLKIT = '/content/ai-toolkit'
 except ImportError:
     IN_COLAB = False
