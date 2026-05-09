@@ -6,9 +6,13 @@
 # only exist in this specific git commit; stable diffusers releases don't
 # have them yet.
 
-# numpy/scipy pins (same as the SDXL requirements — Colab numpy 2.x stack).
-numpy>=2.0,<2.2
-scipy>=1.14,<1.16
+# NOTE: diffusers at this commit predates numpy 2.x compatibility — it still
+# uses numpy._no_nep50_warning, removed in numpy 2.x. So FLUX needs numpy 1.26 +
+# scipy 1.13 here, even though it makes Colab's preinstalled packages
+# (jax/cupy/pytensor/...) print pip-resolver WARNINGS. Those warnings are
+# safe — those packages aren't on the FLUX training path.
+numpy>=1.26,<2
+scipy>=1.13,<1.14
 
 # Bleeding-edge diffusers — pinned to ai-toolkit's requested commit.
 diffusers @ git+https://github.com/huggingface/diffusers.git@dc8d9032171c83741fd37ed2b12bc9d8274464f3
