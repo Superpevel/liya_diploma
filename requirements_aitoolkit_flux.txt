@@ -1,0 +1,62 @@
+# FLUX-specific deps for ai-toolkit — used by notebook 05 only.
+#
+# This is a SUPERSET of requirements_aitoolkit_colab.txt: same minimal subset
+# of ai-toolkit deps, plus a bleeding-edge diffusers and FLUX-only extras.
+# FLUX support in ai-toolkit references classes (LTX2VocoderWithBWE etc.) that
+# only exist in this specific git commit; stable diffusers releases don't
+# have them yet.
+
+# numpy/scipy pins (same as the SDXL requirements — Colab numpy 2.x stack).
+numpy>=2.0,<2.2
+scipy>=1.14,<1.16
+
+# Bleeding-edge diffusers — pinned to ai-toolkit's requested commit.
+diffusers @ git+https://github.com/huggingface/diffusers.git@dc8d9032171c83741fd37ed2b12bc9d8274464f3
+transformers
+accelerate
+peft
+
+# Tokenizers / language
+sentencepiece
+huggingface_hub
+hf_transfer
+
+# Storage formats
+safetensors
+pyyaml
+oyaml
+toml
+omegaconf
+flatten_json
+python-dotenv
+
+# LoRA implementations
+lycoris-lora
+
+# Image ops
+albumentations
+albucore
+einops
+kornia
+opencv-python
+Pillow
+invisible-watermark
+
+# Optimizers / models
+bitsandbytes
+prodigyopt
+timm
+open_clip_torch
+lpips
+torchao
+k-diffusion
+
+# Quantization (REQUIRED for FLUX.1-dev — model is too big without it)
+optimum-quanto
+
+# Utilities
+python-slugify
+pydantic
+
+# ai-toolkit imports toolkit.audio.album_artwork at training time
+av
