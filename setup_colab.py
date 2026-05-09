@@ -44,15 +44,13 @@ def main():
     # Install Python deps
     sh(f"pip install -q -r {DRIVE_ROOT}/requirements.txt")
 
-    # Clone & install ai-toolkit (LoRA training engine)
+    # Clone ai-toolkit (LoRA training engine).
+    # We DON'T use ai-toolkit/requirements.txt — it pins scipy==1.12 and pulls
+    # audio/UI/watermark dependencies we don't need, which trashes Colab's
+    # preinstalled numpy 2.x stack. Use our curated subset instead.
     if not os.path.exists(AI_TOOLKIT):
         sh(f"git clone https://github.com/ostris/ai-toolkit {AI_TOOLKIT}")
-    sh(f"pip install -q -r {AI_TOOLKIT}/requirements.txt")
-    # ai-toolkit pins numpy<2 / scipy<1.13 which break Colab's stack.
-    # Pin a known-compatible pair (numpy 2.1.x + scipy 1.14/1.15) and
-    # force-reinstall so they're built against each other consistently.
-    sh('pip install -q --force-reinstall --no-deps '
-       '"numpy>=2.1,<2.2" "scipy>=1.14,<1.16"')
+    sh(f"pip install -q -r {DRIVE_ROOT}/requirements_aitoolkit_colab.txt")
 
     # Make modules importable
     for p in (DRIVE_ROOT, AI_TOOLKIT):
