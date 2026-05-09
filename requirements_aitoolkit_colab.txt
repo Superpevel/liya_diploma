@@ -53,3 +53,7 @@ optimum-quanto
 # Utilities
 python-slugify
 pydantic
+
+# ai-toolkit unconditionally imports toolkit.audio.album_artwork at FLUX/SD
+# training time, which requires PyAV. We don't actually use audio features.
+av
