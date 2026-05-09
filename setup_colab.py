@@ -19,7 +19,7 @@ import subprocess
 import sys
 
 GITHUB_URL = "https://github.com/superpevel/liya_diploma.git"  # EDIT THIS
-DRIVE_ROOT = "/content/drive/MyDrive/liya_diplomCC"
+DRIVE_ROOT = "/content/drive/MyDrive/liya_diploma"
 AI_TOOLKIT = "/content/ai-toolkit"
 
 
@@ -48,6 +48,11 @@ def main():
     if not os.path.exists(AI_TOOLKIT):
         sh(f"git clone https://github.com/ostris/ai-toolkit {AI_TOOLKIT}")
     sh(f"pip install -q -r {AI_TOOLKIT}/requirements.txt")
+    # ai-toolkit pins numpy<2 / scipy<1.13 which break Colab's stack.
+    # Pin a known-compatible pair (numpy 2.1.x + scipy 1.14/1.15) and
+    # force-reinstall so they're built against each other consistently.
+    sh('pip install -q --force-reinstall --no-deps '
+       '"numpy>=2.1,<2.2" "scipy>=1.14,<1.16"')
 
     # Make modules importable
     for p in (DRIVE_ROOT, AI_TOOLKIT):
