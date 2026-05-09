@@ -48,8 +48,10 @@ prodigyopt
 timm
 open_clip_torch
 lpips
-torchao
 k-diffusion
+# torchao — skipped: requires CUDA build matching exact torch version. Add
+# back only if you actually use int8/fp8 quantization (FLUX uses optimum-quanto
+# instead).
 
 # Quantization (REQUIRED for FLUX.1-dev — model is too big without it)
 optimum-quanto
