@@ -1,21 +1,21 @@
-import cairosvg
-from PIL import Image
 import io
 from pathlib import Path
+
+from PIL import Image
+from resvg_py import svg_to_bytes
 
 
 def svg_to_png(svg_path: str, output_path: str, size: int = 512) -> bool:
     """Convert SVG to PNG with white background. Returns True on success."""
     try:
-        png_bytes = cairosvg.svg2png(
-            url=svg_path,
-            output_width=size,
-            output_height=size,
-        )
-        img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
-        background = Image.new("RGBA", img.size, (255, 255, 255, 255))
-        background.paste(img, mask=img.split()[3])
-        background.convert("RGB").save(output_path, "PNG")
+        png_bytes = bytes(svg_to_bytes(
+            svg_path=str(svg_path),
+            width=size,
+            height=size,
+            background="white",
+        ))
+        img = Image.open(io.BytesIO(png_bytes)).convert("RGB")
+        img.save(output_path, "PNG")
         return True
     except Exception:
         return False

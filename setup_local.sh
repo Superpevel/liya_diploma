@@ -36,14 +36,9 @@ else
     echo "ai-toolkit already exists at $PARENT_DIR/ai-toolkit"
 fi
 
-# 4. System dependencies note
+# 4. HuggingFace auth note
 echo ""
 echo "=== IMPORTANT ==="
-echo "cairosvg requires system cairo library:"
-echo "  macOS:         brew install cairo"
-echo "  Ubuntu/Debian: sudo apt install libcairo2"
-echo "  Arch:          sudo pacman -S cairo"
-echo ""
 echo "HuggingFace auth (needed for FLUX.1-dev):"
 echo "  huggingface-cli login"
 echo ""

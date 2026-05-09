@@ -15,7 +15,7 @@ config:
         save_every: 500
         max_step_saves_to_keep: 4
       datasets:
-        - folder_path: "/content/drive/MyDrive/liya_diplomCC/data/train_2k_images"
+        - folder_path: "/content/drive/MyDrive/liya_diplomCC/data/train_images"
           caption_ext: txt
           caption_dropout_rate: 0.05
           shuffle_tokens: false
@@ -32,14 +32,13 @@ config:
         optimizer: adamw8bit
         lr: 1e-4
         lr_scheduler: cosine_with_restarts
-        lr_scheduler_params:
-          num_cycles: 1
         ema_config:
           use_ema: true
           ema_decay: 0.99
         dtype: bf16
       model:
         name_or_path: "stabilityai/stable-diffusion-xl-base-1.0"
+        is_xl: true
         is_flux: false
         quantize: false
       sample:

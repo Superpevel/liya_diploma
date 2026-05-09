@@ -1,12 +1,13 @@
-# torch installed separately — run setup_local.sh or:
+# torch installed separately - run setup_local.sh / setup_local.ps1 or:
 # pip install torch>=2.6.0 --index-url https://download.pytorch.org/whl/cu128
 # (RTX 5080 / Blackwell requires CUDA 12.8 + PyTorch >= 2.6.0)
+# Pinned for Python 3.11.
 
-cairosvg>=2.2.0
+resvg-py>=0.3.0
 Pillow==10.3.0
 datasets==2.19.1
-transformers==4.41.0
-accelerate==0.30.0
+transformers>=4.45,<4.50
+accelerate>=0.33
 diffusers>=0.28.0
 open-clip-torch==2.24.0
 torch-fidelity==0.3.0
@@ -15,6 +16,7 @@ scikit-image==0.23.2
 scipy==1.13.0
 numpy==1.26.4
 tqdm==4.66.4
+matplotlib>=3.8
 huggingface-hub>=0.24.0
 bitsandbytes>=0.45.0
 pyyaml==6.0.1

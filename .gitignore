@@ -1,13 +1,30 @@
+# Data and trained outputs (too large for git; rebuilt per run)
 data/
+results/
+
+# Python venvs and caches
+.venv*/
+__pycache__/
+*.egg-info/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model artefacts
 *.ckpt
 *.safetensors
-__pycache__/
-.ipynb_checkpoints/
-*.egg-info/
-.env
 *.pt
 *.bin
 *.pth
+
+# Logs
 *.log
 wandb/
+
+# Editor
 .vscode/
+.idea/
+
+# Local secrets
+.env
