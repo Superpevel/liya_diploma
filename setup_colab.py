@@ -18,7 +18,7 @@ import os
 import subprocess
 import sys
 
-GITHUB_URL = "https://github.com/YOUR_USERNAME/liya_diplomCC.git"  # EDIT THIS
+GITHUB_URL = "https://github.com/superpevel/liya_diploma.git"  # EDIT THIS
 DRIVE_ROOT = "/content/drive/MyDrive/liya_diplomCC"
 AI_TOOLKIT = "/content/ai-toolkit"
 
