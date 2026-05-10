@@ -1,7 +1,6 @@
-# FLUX LoRA training via Hugging Face's official example script
-# (examples/dreambooth/train_dreambooth_lora_flux.py).
-# We bypass ai-toolkit entirely — its bleeding-edge deps fight Colab's
-# numpy 2.x stack. This list is what HF's example actually needs.
+# FLUX LoRA training via HF's train_dreambooth_lora_flux.py.
+# Minimal deps. No version pins. No bitsandbytes / optimum-quanto — they
+# transitively pull numpy<2 which breaks Colab's preinstalled stack.
 
 diffusers
 transformers
@@ -12,13 +11,4 @@ huggingface_hub
 sentencepiece
 hf_transfer
 prodigyopt
-bitsandbytes
-
-# FLUX needs quantization to fit weights in <40 GB during training.
-optimum-quanto
-
-# Image preprocessing
 Pillow
-
-# We DON'T pin numpy/scipy here — Colab's preinstalled numpy 2.x works with
-# stable diffusers, no ABI mismatch.
