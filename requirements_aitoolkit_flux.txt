@@ -1,69 +1,24 @@
-# FLUX-specific deps for ai-toolkit — used by notebook 05 only.
-#
-# This is a SUPERSET of requirements_aitoolkit_colab.txt: same minimal subset
-# of ai-toolkit deps, plus a bleeding-edge diffusers and FLUX-only extras.
-# FLUX support in ai-toolkit references classes (LTX2VocoderWithBWE etc.) that
-# only exist in this specific git commit; stable diffusers releases don't
-# have them yet.
+# FLUX LoRA training via Hugging Face's official example script
+# (examples/dreambooth/train_dreambooth_lora_flux.py).
+# We bypass ai-toolkit entirely — its bleeding-edge deps fight Colab's
+# numpy 2.x stack. This list is what HF's example actually needs.
 
-# NOTE: diffusers at this commit predates numpy 2.x compatibility — it still
-# uses numpy._no_nep50_warning, removed in numpy 2.x. So FLUX needs numpy 1.26 +
-# scipy 1.13 here, even though it makes Colab's preinstalled packages
-# (jax/cupy/pytensor/...) print pip-resolver WARNINGS. Those warnings are
-# safe — those packages aren't on the FLUX training path.
-numpy>=1.26,<2
-scipy>=1.13,<1.14
-
-# Bleeding-edge diffusers — pinned to ai-toolkit's requested commit.
-diffusers @ git+https://github.com/huggingface/diffusers.git@dc8d9032171c83741fd37ed2b12bc9d8274464f3
+diffusers
 transformers
 accelerate
 peft
-
-# Tokenizers / language
-sentencepiece
-huggingface_hub
-hf_transfer
-
-# Storage formats
 safetensors
-pyyaml
-oyaml
-toml
-omegaconf
-flatten_json
-python-dotenv
-
-# LoRA implementations
-lycoris-lora
-
-# Image ops
-albumentations
-albucore
-einops
-kornia
-opencv-python
-Pillow
-# invisible-watermark — skipped: pulls PyWavelets which fails to build from
-# source on Colab Python 3.12. Watermarking is not used by the training path.
-
-# Optimizers / models
-bitsandbytes
+huggingface_hub
+sentencepiece
+hf_transfer
 prodigyopt
-timm
-open_clip_torch
-lpips
-k-diffusion
-# torchao — skipped: requires CUDA build matching exact torch version. Add
-# back only if you actually use int8/fp8 quantization (FLUX uses optimum-quanto
-# instead).
+bitsandbytes
 
-# Quantization (REQUIRED for FLUX.1-dev — model is too big without it)
+# FLUX needs quantization to fit weights in <40 GB during training.
 optimum-quanto
 
-# Utilities
-python-slugify
-pydantic
+# Image preprocessing
+Pillow
 
-# ai-toolkit imports toolkit.audio.album_artwork at training time
-av
+# We DON'T pin numpy/scipy here — Colab's preinstalled numpy 2.x works with
+# stable diffusers, no ABI mismatch.
