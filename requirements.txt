@@ -1,28 +1,12 @@
-# torch installed separately — run setup_local.{sh,ps1} or:
-#   pip install torch>=2.6.0 --index-url https://download.pytorch.org/whl/cu128
-# (RTX 5080 / Blackwell needs CUDA 12.8 + PyTorch >= 2.6.0)
-#
-# Pins are loose on purpose: Colab's Python ABI changes between releases
-# (currently 3.12 with numpy 2.x preinstalled), and hard-pinning numpy/scipy
-# causes binary-incompat errors with datasets/pyarrow/scikit-image.
+aiogram>=3.4,<4
+python-dotenv>=1.0
+Pillow>=10.0
 
-resvg-py>=0.3.0
-Pillow>=10.3
-datasets>=2.19
-transformers>=4.45,<4.50
-accelerate>=0.33
-diffusers>=0.28
-open-clip-torch>=2.24
-torch-fidelity>=0.3
-lpips>=0.1.4
-scikit-image>=0.23
-scipy>=1.13
-numpy>=1.26
-tqdm>=4.66
-matplotlib>=3.8
-huggingface-hub>=0.24
-bitsandbytes>=0.45
-pyyaml>=6.0
-requests>=2.31
-jupyter
-jupyterlab
+# Для реальной генерации (опционально, тяжёлые зависимости):
+# torch>=2.1
+# diffusers>=0.38,<0.40
+# transformers>=4.49,<5     # diffusers 0.38+ требует Dinov2WithRegistersConfig
+# accelerate>=1.0           # peft 0.15+ требует clear_device_cache
+# safetensors>=0.4
+# peft>=0.15
+# sentencepiece>=0.2        # требуется FLUX
