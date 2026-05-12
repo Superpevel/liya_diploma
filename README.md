@@ -36,9 +36,6 @@ git commit -m "initial commit"
 git push -u origin main
 ```
 
-Потом в `setup_colab.py` поменять `YOUR_USERNAME` на свой ник на гитхабе и
-запушить эту правку.
-
 ### В Colab
 
 1. **Берём runtime с GPU**: Runtime → Change runtime type → T4 (бесплатный)
@@ -47,22 +44,15 @@ git push -u origin main
    репо → выбираем, например, `notebooks/01_dataset_collection.ipynb`.
 3. **Первая ячейка любого ноутбука** — просто запускаем. Она:
    - монтирует Drive
-   - клонит проект в `/content/drive/MyDrive/liya_diplomCC`, если его там нет
-   - ставит зависимости
-   - клонит `ai-toolkit` в `/content/ai-toolkit`
+   - клонит `ai-toolkit` в `/content/ai-toolkit` (если нужно)
+   - ставит зависимости и проверяет sanity-imports
+   - при первой установке убивает kernel — это норма, запускаем ячейку второй раз
 4. **Логинимся в HuggingFace** (один раз за runtime, только если нужен FLUX):
    ```
    !huggingface-cli login
    ```
    Токен берём тут: <https://huggingface.co/settings/tokens>, лицензию
    FLUX.1-dev принимаем тут: <https://huggingface.co/black-forest-labs/FLUX.1-dev>.
-
-> Если Cell 0 падает потому что `scripts/` ещё нет в Drive, в новой ячейке
-> запускаем:
->
-> ```python
-> !curl -sSL https://raw.githubusercontent.com/YOUR_USERNAME/liya_diplomCC/main/setup_colab.py | python -
-> ```
 
 ### Куда что складывается
 
@@ -121,8 +111,7 @@ liya_diplomCC/
 ├── results/          # веса LoRA и метрики, не в git
 ├── docs/             # план диплома, спецификации
 ├── requirements.txt
-├── setup_local.{ps1,sh}
-└── setup_colab.py
+└── setup_local.{ps1,sh}
 ```
 
 В конфигах прописаны Colab-пути вида `/content/drive/MyDrive/liya_diplomCC/...`
