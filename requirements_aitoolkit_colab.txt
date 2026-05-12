@@ -1,8 +1,8 @@
 # Minimal subset of ai-toolkit deps for SDXL/FLUX LoRA training on Colab.
 # Skips ai-toolkit's own requirements.txt (it pins scipy==1.12 which breaks
 # Colab's preinstalled numpy 2.x stack). Skips audio (librosa, torchcodec,
-# av, mutagen), UI (gradio), watermark, tensorboard, k-diffusion — none are
-# touched by the SDXL LoRA training path.
+# mutagen), UI (gradio), watermark, tensorboard — none are touched by the
+# SDXL LoRA training path.
 #
 # We do NOT pin numpy/scipy here — Colab's preinstalled versions work, and
 # pinning back triggers ABI mismatches.
@@ -29,6 +29,9 @@ python-dotenv
 
 # LoRA implementations
 lycoris-lora
+
+# Samplers — ai-toolkit грузит k-diffusion в SDXL training path
+k-diffusion
 
 # Image ops
 albumentations
