@@ -28,3 +28,6 @@ wandb/
 
 # Local secrets
 .env
+
+# Bot runtime storage (sqlite + saved generations)
+bot_storage/

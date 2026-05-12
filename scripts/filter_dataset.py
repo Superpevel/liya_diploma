@@ -1,28 +1,28 @@
 import xml.etree.ElementTree as ET
-from PIL import Image
 from pathlib import Path
+
+from PIL import Image
+
+
+SVG_NS = "{http://www.w3.org/2000/svg}"
 
 
 def count_svg_paths(svg_path: str) -> int:
-    """Count path elements in SVG. Returns -1 on parse error."""
+    """Сколько <path> в svg. -1 если не удалось распарсить."""
     try:
-        tree = ET.parse(svg_path)
-        root = tree.getroot()
-        paths = {e for e in root.iter()
-                 if e.tag in ("path", "{http://www.w3.org/2000/svg}path")}
-        return len(paths)
+        root = ET.parse(svg_path).getroot()
     except Exception:
         return -1
+    return sum(1 for e in root.iter() if e.tag in ("path", f"{SVG_NS}path"))
 
 
 def get_aspect_ratio(png_path: str) -> float:
-    """Return width/height ratio of PNG. Returns -1.0 on error."""
+    """Отношение width/height. -1.0 если картинку не открыть."""
     try:
-        img = Image.open(png_path)
-        w, h = img.size
-        return w / h
+        w, h = Image.open(png_path).size
     except Exception:
         return -1.0
+    return w / h
 
 
 def filter_dataset(
@@ -34,34 +34,28 @@ def filter_dataset(
     max_ratio: float = 1.2,
 ) -> list[dict]:
     """
-    Filter PNGs (and optionally paired SVGs) by path count and aspect ratio.
-
-    If svg_dir contains SVG siblings, each PNG must have a matching SVG with
-    a path count in [min_paths, max_paths]. If svg_dir is None or empty
-    (PNG-only datasets), the SVG check is skipped.
-
-    Returns list of dicts: {png_path, svg_path or None}.
+    Отбирает PNG (и парные SVG если есть) по числу путей и пропорциям.
+    Если svg_dir не задан или там нет svg — проверка по svg пропускается.
     """
     png_dir = Path(png_dir)
     svg_dir_path = Path(svg_dir) if svg_dir else None
     have_svgs = svg_dir_path is not None and any(svg_dir_path.glob("*.svg"))
-    results = []
 
+    out = []
     for png_path in sorted(png_dir.glob("*.png")):
         svg_path = None
         if have_svgs:
             candidate = svg_dir_path / (png_path.stem + ".svg")
             if not candidate.exists():
                 continue
-            n_paths = count_svg_paths(str(candidate))
-            if n_paths < min_paths or n_paths > max_paths:
+            n = count_svg_paths(str(candidate))
+            if not (min_paths <= n <= max_paths):
                 continue
             svg_path = str(candidate)
 
         ratio = get_aspect_ratio(str(png_path))
-        if ratio < min_ratio or ratio > max_ratio:
+        if not (min_ratio <= ratio <= max_ratio):
             continue
 
-        results.append({"png_path": str(png_path), "svg_path": svg_path})
-
-    return results
+        out.append({"png_path": str(png_path), "svg_path": svg_path})
+    return out

@@ -3,7 +3,7 @@ from __future__ import annotations
 from . import config
 
 START_TEXT = (
-    "👋 Привет! Я бот для генерации логотипов на дообученной модели "
+    "Привет! Я бот для генерации логотипов на дообученной модели "
     "(SDXL/FLUX + LoRA).\n\n"
     "Доступные команды:\n"
     "• /generate — сгенерировать логотип по описанию\n"
@@ -12,11 +12,11 @@ START_TEXT = (
     "• /model — выбрать модель генерации\n"
     "• /help — как формулировать промпт\n"
     "• /menu — это меню\n\n"
-    "Можно просто прислать описание текстом (>5 символов), без команды."
+    "Или можно просто прислать описание текстом (>5 символов), без команды :)"
 )
 
 HELP_TEXT = (
-    "📝 Как сформулировать промпт\n\n"
+    "Как сформулировать промпт\n\n"
     "Структура: <b>что</b> + <b>стиль</b> + <b>палитра</b> + <b>отрасль</b>.\n\n"
     "Удачные примеры:\n"
     "• <code>burger logo, flat vector style, red and yellow palette, "
@@ -38,26 +38,26 @@ def menu_text() -> str:
 
 
 def model_list_text(current_key: str) -> str:
-    lines = ["🧠 Доступные модели:"]
+    lines = ["Доступные модели:"]
     for key, cfg in config.MODELS.items():
         marker = "✅" if key == current_key else "▫️"
         lines.append(f"{marker} <b>{cfg.title}</b>")
-    lines.append("\nВыбери модель кнопкой ниже.")
+    lines.append("\nВыбери модель кнопкой ниже")
     return "\n".join(lines)
 
 
 GENERATE_PROMPT_TEXT = (
-    "✍️ Пришли текстовое описание логотипа.\n"
+    "Пришли текстовое описание логотипа :)\n"
     "Например: <i>burger logo, flat style, red and yellow, fast food</i>.\n"
-    "Подсказки по структуре — /help."
+    "Подсказки по структуре — /help"
 )
 
 TOO_SHORT_TEXT = (
     "Описание слишком короткое. Нужно хотя бы 6 символов — "
-    "например, <i>burger logo, flat</i>."
+    "например, <i>burger logo, flat</i>"
 )
 
-GENERATING_TEXT = "🎨 Генерирую 4 варианта, это займёт ~30–90 секунд…"
+GENERATING_TEXT = "Генерирую 4 вариата, это займёт примерно 30-60 секунд…"
 
 NO_LAST_GEN_TEXT = (
     "Сначала сгенерируй логотип через /generate, затем сможешь выбрать "
@@ -66,4 +66,4 @@ NO_LAST_GEN_TEXT = (
 
 NO_HISTORY_TEXT = "За последние 24 часа запросов нет. Попробуй /generate."
 
-FEEDBACK_SAVED_TEXT = "Спасибо! Выбор сохранён — он поможет дообучить модель. 🙏"
+FEEDBACK_SAVED_TEXT = "Спасибо! Выбор сохранён — он поможет дообучить модель"

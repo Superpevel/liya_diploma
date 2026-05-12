@@ -1,10 +1,11 @@
+import json
+import random
+from pathlib import Path
+
+import numpy as np
 import open_clip
 import torch
 from PIL import Image
-import json
-import random
-import numpy as np
-from pathlib import Path
 from tqdm import tqdm
 
 
@@ -13,13 +14,11 @@ def _load_clip():
         "ViT-B-32", pretrained="openai"
     )
     tokenizer = open_clip.get_tokenizer("ViT-B-32")
-    model.eval()
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    return model.to(device), preprocess, tokenizer, device
+    return model.eval().to(device), preprocess, tokenizer, device
 
 
-def _clip_score_single(model, preprocess, tokenizer, device,
-                        image_path: str, caption: str) -> float:
+def _clip_score_single(model, preprocess, tokenizer, device, image_path, caption):
     image = preprocess(Image.open(image_path).convert("RGB")).unsqueeze(0).to(device)
     text = tokenizer([caption]).to(device)
     with torch.no_grad():
@@ -30,12 +29,16 @@ def _clip_score_single(model, preprocess, tokenizer, device,
         return (img_feat * txt_feat).sum().item()
 
 
+def _read_jsonl(path):
+    with open(path) as f:
+        return [json.loads(line) for line in f]
+
+
 def compute_clip_scores(jsonl_path: str, sample_size: int = 200,
                         seed: int = 42) -> list[float]:
-    """Compute CLIP Score for a random sample. Returns list of scores."""
+    """CLIP Score по случайной выборке. Возвращает список значений."""
     random.seed(seed)
-    with open(jsonl_path) as f:
-        pairs = [json.loads(l) for l in f]
+    pairs = _read_jsonl(jsonl_path)
     sample = random.sample(pairs, min(sample_size, len(pairs)))
 
     model, preprocess, tokenizer, device = _load_clip()
@@ -47,14 +50,12 @@ def compute_clip_scores(jsonl_path: str, sample_size: int = 200,
 
 
 def filter_by_clip_score(jsonl_path: str, output_path: str,
-                          threshold: float = 0.25) -> dict:
-    """Filter pairs where CLIP Score < threshold. Writes kept pairs to output_path."""
-    with open(jsonl_path) as f:
-        pairs = [json.loads(l) for l in f]
-
+                         threshold: float = 0.25) -> dict:
+    """Отбрасывает пары с CLIP Score < threshold. Сохраняет остальное."""
+    pairs = _read_jsonl(jsonl_path)
     model, preprocess, tokenizer, device = _load_clip()
-    kept, removed = [], 0
 
+    kept, removed = [], 0
     for item in tqdm(pairs, desc="CLIP filtering"):
         score = _clip_score_single(model, preprocess, tokenizer, device,
                                    item["png_path"], item["caption"])

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import logging
 
@@ -7,14 +5,15 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand
 
-from . import config, deps, storage as storage_module
+from . import config, deps
 from .generator import ImageGenerator
 from .handlers import router
+from .storage import Storage, cleanup_loop
 
-logger = logging.getLogger("bot")
+log = logging.getLogger("bot")
 
 
-BOT_COMMANDS = [
+COMMANDS = [
     BotCommand(command="start", description="Приветствие и меню"),
     BotCommand(command="menu", description="Показать меню"),
     BotCommand(command="generate", description="Сгенерировать логотип"),
@@ -25,34 +24,32 @@ BOT_COMMANDS = [
 ]
 
 
-async def _main() -> None:
+async def run():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
     settings = config.load_settings()
-    storage = storage_module.Storage()
-    generator = ImageGenerator(settings)
-    deps.init(storage=storage, generator=generator, settings=settings)
-    logger.info("Backend: %s", generator.backend_info)
+    store = Storage()
+    gen = ImageGenerator(settings)
+    deps.init(store, gen, settings)
+    log.info("Backend: %s", gen.backend_info)
 
     bot = Bot(token=settings.bot_token)
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
 
-    await bot.set_my_commands(BOT_COMMANDS)
-    cleanup_task = asyncio.create_task(
-        storage_module.cleanup_loop(storage, settings.history_ttl_hours)
-    )
+    await bot.set_my_commands(COMMANDS)
+    cleaner = asyncio.create_task(cleanup_loop(store, settings.history_ttl_hours))
     try:
         await dp.start_polling(bot)
     finally:
-        cleanup_task.cancel()
+        cleaner.cancel()
         await bot.session.close()
 
 
-def main() -> None:
-    asyncio.run(_main())
+def main():
+    asyncio.run(run())
 
 
 if __name__ == "__main__":

@@ -1,107 +1,68 @@
-from __future__ import annotations
-
 import asyncio
 import random
 from dataclasses import dataclass
-from pathlib import Path
-from typing import List, Optional, Tuple
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 from . import config
 
 
 @dataclass
 class GenerationResult:
-    images: List[Image.Image]
-    seeds: List[int]
-
-
-class _StubPipeline:
-    """Заглушка, отдающая цветные placeholder-картинки.
-
-    Используется автоматически, если в окружении нет ``torch``/``diffusers``
-    или модели не помещаются в память. Позволяет проверить весь Telegram-флоу
-    без GPU.
-    """
-
-    def __init__(self, model_key: str) -> None:
-        self.model_key = model_key
-
-    def __call__(self, *, prompt: str, negative_prompt: str,
-                 num_inference_steps: int, guidance_scale: float,
-                 width: int, height: int, generator) -> "_StubOutput":
-        seed = int(getattr(generator, "initial_seed", lambda: 0)())
-        rng = random.Random(f"{prompt}:{seed}")
-        bg = tuple(rng.randint(40, 215) for _ in range(3))
-        img = Image.new("RGB", (width, height), bg)
-        from PIL import ImageDraw, ImageFont
-
-        draw = ImageDraw.Draw(img)
-        try:
-            font = ImageFont.truetype("arial.ttf", size=42)
-        except OSError:
-            font = ImageFont.load_default()
-        text = f"[stub:{self.model_key}]\nseed={seed}\n{prompt[:80]}"
-        draw.multiline_text((40, 40), text, fill=(255, 255, 255), font=font,
-                            spacing=8)
-        return _StubOutput([img])
-
-
-@dataclass
-class _StubOutput:
-    images: List[Image.Image]
+    images: list
+    seeds: list
 
 
 class ImageGenerator:
-    """Ленивая загрузка SDXL/FLUX пайплайнов с LoRA-весами."""
+    """SDXL/FLUX + LoRA. Если torch/CUDA нет — рисуем placeholder."""
 
-    def __init__(self, settings: config.Settings) -> None:
+    def __init__(self, settings: config.Settings):
         self.settings = settings
-        self._pipelines: dict[str, object] = {}
+        self._pipes: dict = {}
         self._lock = asyncio.Lock()
-        self._device, self._dtype, self._reason = self._resolve_runtime()
+        self._device, self._dtype, self._stub_reason = self._detect_runtime()
 
-    def _resolve_runtime(self) -> Tuple[str, object, Optional[str]]:
+    def _detect_runtime(self):
         try:
-            import torch  # type: ignore
+            import torch
         except ImportError:
             return "stub", None, "torch не установлен"
+
         requested = self.settings.device
-        if requested == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-        else:
-            device = requested
+        device = ("cuda" if torch.cuda.is_available() else "cpu") \
+            if requested == "auto" else requested
+
         if device == "cuda" and not torch.cuda.is_available():
             return "stub", None, "CUDA недоступна"
-        dtype = torch.float16 if self.settings.dtype == "fp16" else torch.float32
+
         if device == "cpu":
             dtype = torch.float32
+        else:
+            dtype = torch.float16 if self.settings.dtype == "fp16" else torch.float32
         return device, dtype, None
 
     @property
+    def is_stub(self) -> bool:
+        return self._device == "stub"
+
+    @property
     def backend_info(self) -> str:
-        if self._device == "stub":
-            return f"stub ({self._reason})"
+        if self.is_stub:
+            return f"stub ({self._stub_reason})"
         return f"{self._device}/{self.settings.dtype}"
 
     async def _get_pipeline(self, model_key: str):
         async with self._lock:
-            if model_key in self._pipelines:
-                return self._pipelines[model_key]
+            if model_key in self._pipes:
+                return self._pipes[model_key]
             cfg = config.MODELS[model_key]
             pipe = await asyncio.to_thread(self._load_pipeline, cfg)
-            self._pipelines[model_key] = pipe
+            self._pipes[model_key] = pipe
             return pipe
 
     def _load_pipeline(self, cfg: config.ModelConfig):
-        if self._device == "stub":
-            return _StubPipeline(cfg.key)
-        import torch  # type: ignore
-        from diffusers import (  # type: ignore
-            StableDiffusionXLPipeline,
-            FluxPipeline,
-        )
+        import torch
+        from diffusers import StableDiffusionXLPipeline, FluxPipeline
 
         if cfg.base == "sdxl":
             pipe = StableDiffusionXLPipeline.from_pretrained(
@@ -120,59 +81,33 @@ class ImageGenerator:
 
         if not cfg.lora_path.exists():
             raise FileNotFoundError(f"LoRA не найдена: {cfg.lora_path}")
+
         pipe.load_lora_weights(
             str(cfg.lora_path.parent), weight_name=cfg.lora_path.name,
         )
         pipe.to(self._device)
-        try:
+        if hasattr(pipe, "enable_attention_slicing"):
             pipe.enable_attention_slicing()
-        except Exception:
-            pass
         return pipe
 
-    async def generate(
-        self,
-        prompt: str,
-        model_key: str,
-        num_variants: int,
-    ) -> GenerationResult:
+    async def generate(self, prompt: str, model_key: str,
+                       num_variants: int) -> GenerationResult:
         cfg = config.MODELS[model_key]
         full_prompt = f"{cfg.trigger}{prompt}".strip()
-        pipe = await self._get_pipeline(model_key)
         seeds = [random.randint(0, 2**31 - 1) for _ in range(num_variants)]
-        images = await asyncio.to_thread(
-            self._run_pipeline, pipe, full_prompt, seeds
-        )
+
+        if self.is_stub:
+            images = [self._stub_image(full_prompt, s, cfg.key) for s in seeds]
+            return GenerationResult(images=images, seeds=seeds)
+
+        pipe = await self._get_pipeline(model_key)
+        images = await asyncio.to_thread(self._run_pipeline, pipe, full_prompt, seeds)
         return GenerationResult(images=images, seeds=seeds)
 
-    def _run_pipeline(
-        self, pipe, prompt: str, seeds: List[int],
-    ) -> List[Image.Image]:
-        results: List[Image.Image] = []
+    def _run_pipeline(self, pipe, prompt: str, seeds: list) -> list:
+        import torch
         s = self.settings
-        if self._device == "stub":
-            class _G:
-                def __init__(self, seed: int) -> None:
-                    self._seed = seed
-
-                def initial_seed(self) -> int:
-                    return self._seed
-
-            for seed in seeds:
-                out = pipe(
-                    prompt=prompt,
-                    negative_prompt=s.negative_prompt,
-                    num_inference_steps=s.num_inference_steps,
-                    guidance_scale=s.guidance_scale,
-                    width=s.image_width,
-                    height=s.image_height,
-                    generator=_G(seed),
-                )
-                results.extend(out.images)
-            return results
-
-        import torch  # type: ignore
-
+        result = []
         for seed in seeds:
             gen = torch.Generator(device=self._device).manual_seed(seed)
             out = pipe(
@@ -184,5 +119,20 @@ class ImageGenerator:
                 height=s.image_height,
                 generator=gen,
             )
-            results.extend(out.images)
-        return results
+            result.extend(out.images)
+        return result
+
+    def _stub_image(self, prompt: str, seed: int, model_key: str) -> Image.Image:
+        s = self.settings
+        rng = random.Random(f"{prompt}:{seed}")
+        bg = tuple(rng.randint(40, 215) for _ in range(3))
+        img = Image.new("RGB", (s.image_width, s.image_height), bg)
+        draw = ImageDraw.Draw(img)
+        try:
+            font = ImageFont.truetype("arial.ttf", size=42)
+        except OSError:
+            font = ImageFont.load_default()
+        text = f"[stub:{model_key}]\nseed={seed}\n{prompt[:80]}"
+        draw.multiline_text((40, 40), text, fill=(255, 255, 255), font=font,
+                            spacing=8)
+        return img

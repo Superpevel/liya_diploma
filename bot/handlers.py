@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 import html
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
@@ -21,7 +18,7 @@ from aiogram.types import (
 from . import config, deps, texts
 from .storage import Generation
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 router = Router()
 
 MIN_PROMPT_LEN = 6
@@ -31,15 +28,14 @@ class GenStates(StatesGroup):
     waiting_prompt = State()
 
 
-def feedback_keyboard(generation: Generation) -> InlineKeyboardMarkup:
-    buttons = []
-    for v in generation.variants:
-        buttons.append(
-            InlineKeyboardButton(
-                text=f"Вариант {v.idx + 1}",
-                callback_data=f"fb:{generation.id}:{v.id}",
-            )
+def feedback_keyboard(gen: Generation) -> InlineKeyboardMarkup:
+    buttons = [
+        InlineKeyboardButton(
+            text=f"Вариант {v.idx + 1}",
+            callback_data=f"fb:{gen.id}:{v.id}",
         )
+        for v in gen.variants
+    ]
     rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -77,8 +73,7 @@ async def cmd_generate(message: Message, state: FSMContext) -> None:
 
 @router.message(Command("model"))
 async def cmd_model(message: Message) -> None:
-    storage = deps.storage()
-    current = await storage.get_user_model(message.from_user.id)
+    current = await deps.storage.get_user_model(message.from_user.id)
     await message.answer(
         texts.model_list_text(current),
         parse_mode="HTML",
@@ -88,12 +83,11 @@ async def cmd_model(message: Message) -> None:
 
 @router.callback_query(F.data.startswith("model:"))
 async def on_model_pick(call: CallbackQuery) -> None:
-    storage = deps.storage()
     key = call.data.split(":", 1)[1]
     if key not in config.MODELS:
         await call.answer("Неизвестная модель", show_alert=True)
         return
-    await storage.set_user_model(call.from_user.id, key)
+    await deps.storage.set_user_model(call.from_user.id, key)
     cfg = config.MODELS[key]
     await call.message.edit_text(
         texts.model_list_text(key),
@@ -105,8 +99,7 @@ async def on_model_pick(call: CallbackQuery) -> None:
 
 @router.message(Command("feedback"))
 async def cmd_feedback(message: Message) -> None:
-    storage = deps.storage()
-    last = await storage.last_generation(message.from_user.id)
+    last = await deps.storage.last_generation(message.from_user.id)
     if last is None or not last.variants:
         await message.answer(texts.NO_LAST_GEN_TEXT)
         return
@@ -120,9 +113,8 @@ async def cmd_feedback(message: Message) -> None:
 
 @router.callback_query(F.data.startswith("fb:"))
 async def on_feedback(call: CallbackQuery) -> None:
-    storage = deps.storage()
     _, gen_id, variant_id = call.data.split(":", 2)
-    await storage.save_feedback(call.from_user.id, gen_id, variant_id)
+    await deps.storage.save_feedback(call.from_user.id, gen_id, variant_id)
     await call.answer(texts.FEEDBACK_SAVED_TEXT, show_alert=False)
     try:
         await call.message.edit_reply_markup(reply_markup=None)
@@ -133,30 +125,27 @@ async def on_feedback(call: CallbackQuery) -> None:
 
 @router.message(Command("history"))
 async def cmd_history(message: Message) -> None:
-    storage = deps.storage()
-    settings = deps.settings()
-    items = await storage.recent_generations(
-        message.from_user.id, settings.history_ttl_hours
-    )
+    ttl = deps.settings.history_ttl_hours
+    items = await deps.storage.recent_generations(message.from_user.id, ttl)
     if not items:
         await message.answer(texts.NO_HISTORY_TEXT)
         return
-    lines = [
-        f"📜 История за последние {settings.history_ttl_hours} ч "
-        f"(всего {len(items)}):"
-    ]
+
+    lines = [f"История за последние {ttl} ч (всего {len(items)}):"]
     for gen in items:
         ts = datetime.fromtimestamp(gen.created_at, tz=timezone.utc).astimezone()
         when = ts.strftime("%d.%m %H:%M")
         prompt = html.escape(gen.prompt[:80])
         model = config.MODELS.get(gen.model_key)
         model_name = model.title if model else gen.model_key
-        files = [str(v.file_path) for v in gen.variants]
-        files_line = (
-            "\n   файлы: " + ", ".join(f"<code>{html.escape(f)}</code>"
-                                       for f in files)
-            if files else "\n   (файлы удалены по TTL)"
-        )
+        if gen.variants:
+            files = ", ".join(
+                f"<code>{html.escape(str(v.file_path))}</code>"
+                for v in gen.variants
+            )
+            files_line = f"\n   файлы: {files}"
+        else:
+            files_line = "\n   (файлы удалены по TTL)"
         lines.append(
             f"• <b>{when}</b> · {html.escape(model_name)}\n"
             f"   <i>{prompt}</i>{files_line}"
@@ -185,29 +174,27 @@ async def _run_generation(message: Message, prompt: str) -> None:
     if len(prompt) < MIN_PROMPT_LEN:
         await message.answer(texts.TOO_SHORT_TEXT, parse_mode="HTML")
         return
-    storage = deps.storage()
-    generator = deps.generator()
-    settings = deps.settings()
+
     user_id = message.from_user.id
-    model_key = await storage.get_user_model(user_id)
+    model_key = await deps.storage.get_user_model(user_id)
     cfg = config.MODELS[model_key]
 
     status = await message.answer(texts.GENERATING_TEXT)
     try:
-        result = await generator.generate(
+        result = await deps.generator.generate(
             prompt=prompt,
             model_key=model_key,
-            num_variants=settings.num_variants,
+            num_variants=deps.settings.num_variants,
         )
     except FileNotFoundError as e:
         await status.edit_text(f"❌ {e}")
         return
     except Exception as e:
-        logger.exception("Generation failed")
+        log.exception("Generation failed")
         await status.edit_text(f"❌ Ошибка генерации: {e}")
         return
 
-    gen = await storage.save_generation(
+    gen = await deps.storage.save_generation(
         user_id=user_id,
         prompt=prompt,
         model_key=model_key,
@@ -217,23 +204,18 @@ async def _run_generation(message: Message, prompt: str) -> None:
 
     media = []
     for v in gen.variants:
-        with open(v.file_path, "rb") as f:
-            data = f.read()
+        data = v.file_path.read_bytes()
         caption = None
         if v.idx == 0:
             caption = (
-                f"🖼 4 варианта · модель: <b>{html.escape(cfg.title)}</b>\n"
+                f"4 варианта · модель: <b>{html.escape(cfg.title)}</b>\n"
                 f"Запрос: <i>{html.escape(prompt)}</i>"
             )
-        media.append(
-            InputMediaPhoto(
-                media=BufferedInputFile(
-                    data, filename=f"variant_{v.idx + 1}.png"
-                ),
-                caption=caption,
-                parse_mode="HTML" if caption else None,
-            )
-        )
+        media.append(InputMediaPhoto(
+            media=BufferedInputFile(data, filename=f"variant_{v.idx + 1}.png"),
+            caption=caption,
+            parse_mode="HTML" if caption else None,
+        ))
     await message.answer_media_group(media)
     await message.answer(
         "Какой вариант лучший? Нажми /feedback или кнопку ниже:",
