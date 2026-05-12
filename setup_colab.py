@@ -9,8 +9,10 @@ notebooks/04_train_sdxl_lora.ipynb с теми же пакетами и подр
 """
 
 import os
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 
 GITHUB_URL = "https://github.com/superpevel/liya_diploma.git"
@@ -18,8 +20,6 @@ DRIVE_ROOT = "/content/drive/MyDrive/liya_diploma"
 AI_TOOLKIT = "/content/ai-toolkit"
 
 # Не пиннуем — Colab сам ставит совместимые версии diffusers/torch/numpy/etc.
-# k-diffusion ставится отдельно с --no-deps (его clean-fid тянет scipy<1.12
-# который под py3.12 собирается из source и падает на metadata-generation).
 EXTRA_PACKAGES = [
     'hf_transfer',
     'oyaml',
@@ -39,10 +39,24 @@ EXTRA_PACKAGES = [
     'jsonmerge',
     'resize-right',
     'clip-anytorch',
+    'dctorch',
     # FLUX:
     'sentencepiece',
 ]
-KDIFF_VERSION = 'k-diffusion==0.1.1.post1'
+
+# --no-deps пакеты: тянут scipy<1.12 / wandb / etc — pip backtracking
+# заканчивается сборкой scipy 1.11 из source -> metadata-generation-failed.
+NO_DEPS_PACKAGES = [
+    'k-diffusion==0.1.1.post1',
+    'clean-fid',
+]
+
+# ai-toolkit extensions, которые ломают импорт под Colab-овским transformers.
+# hidream требует merge_with_config_defaults, появившийся в transformers
+# после 5.0.0 (или взятый из их форка). SDXL/FLUX в нём не нуждаются.
+BROKEN_EXTENSIONS = [
+    'extensions_built_in/diffusion_models/hidream',
+]
 
 
 def sh(cmd):
@@ -71,11 +85,19 @@ def main():
     if not os.path.exists(AI_TOOLKIT):
         sh(f"git clone https://github.com/ostris/ai-toolkit {AI_TOOLKIT}")
 
+    # Удаляем сломанные extensions всегда (на случай если они остались
+    # от предыдущего клона до этого фикса).
+    for rel in BROKEN_EXTENSIONS:
+        path = Path(AI_TOOLKIT) / rel
+        if path.exists():
+            shutil.rmtree(path)
+            print(f"Removed broken extension: {rel}")
+
     pip_install(
         ['--upgrade-strategy', 'only-if-needed', *EXTRA_PACKAGES],
         "Installing extras (Colab-preinstalled core не трогаем)",
     )
-    pip_install(['--no-deps', KDIFF_VERSION], "Installing k-diffusion (--no-deps)")
+    pip_install(['--no-deps', *NO_DEPS_PACKAGES], "Installing --no-deps packages")
 
     for p in (DRIVE_ROOT, AI_TOOLKIT):
         if p not in sys.path:
